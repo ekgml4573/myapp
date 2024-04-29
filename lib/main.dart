@@ -579,7 +579,6 @@
 //   }
 // }
 
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -638,33 +637,137 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
+final picker = ImagePicker();
+XFile? image; // 카메라로 촬영한 이미지를 저장할 변수
+List<XFile?> multiImage = []; // 갤러리에서 여러장의 사진을 선택해서 저장할 변수
+List<XFile?> images = []; // 가져온 사진들을 보여주기 위한 변수
+
 class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        padding: EdgeInsets.all(10),
-        child: Column(
-          children: [
-            SizedBox(
-              height: 50,
-            ),
-            Row(
-              children: [
-                Container(
-                  margin: EdgeInsets.all(10),
-                  padding: EdgeInsets.all(5),
-                  decoration: BoxDecoration(
-                    color: Colors.lightBlueAccent,
-                    borderRadius: BorderRadius.circular(5),
-
+          padding: EdgeInsets.all(10),
+          child: Column(
+            children: [
+              SizedBox(
+                height: 50,
+              ),
+              Row(
+                children: [
+                  // 카메라 촬영
+                  Container(
+                    margin: EdgeInsets.all(10),
+                    padding: EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: Colors.lightBlueAccent,
+                      borderRadius: BorderRadius.circular(5),
+                      boxShadow: [
+                        BoxShadow(
+                            color: Colors.grey.withOpacity(0.5),
+                            spreadRadius: 0.5,
+                            blurRadius: 5)
+                      ],
+                    ),
+                    child: IconButton(
+                      onPressed: () async {
+                        image =
+                            await picker.pickImage(source: ImageSource.camera);
+                      // 카메라로 촬영하지 않고 뒤로가기 버튼을 누를 경우, null 값이 저장되므로 if 문을 통해 null이 아닐 경우에만 images 변수로 저장하도록 함
+                        if (image != null) {
+                          setState(() {
+                            images.add(image);
+                          });
+                        }
+                      },
+                      icon: Icon(
+                        Icons.add_a_photo,
+                        size: 30,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
-                )
-              ],
-            )
-          ],
-        ),
-      ),
+                  // 갤러리에서 가져오기
+                  Container(
+                    margin: EdgeInsets.all(10),
+                    padding: EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                        color: Colors.lightBlueAccent,
+                        borderRadius: BorderRadius.circular(5),
+                        boxShadow: [
+                          BoxShadow(
+                              color: Colors.grey.withOpacity(0.5),
+                              spreadRadius: 0.5,
+                              blurRadius: 5)
+                        ]),
+                    child: IconButton(
+                      onPressed: () async {
+                        multiImage = await picker.pickMultiImage();
+                        setState(() {
+                          // 갤러리에서 가져 온 사진들은 리스트 변수에 저장되므로 addAll()을 사용해서 images와 multiImage 리스트를 합쳐줌
+                          images.addAll(multiImage);
+                        });
+                      },
+                      icon: const Icon(
+                        Icons.add_a_photo_outlined,
+                        size: 30,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                margin: EdgeInsets.all(10),
+                child: GridView.builder(
+                  padding: EdgeInsets.all(0),
+                  shrinkWrap: true,
+                  itemCount: images.length,  // 보여줄 item 개수, images 리스트 변수에 담겨있는 사진 수 만큼
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,  // 1개의 행에 보여줄 사진 개수
+                      childAspectRatio: 1 / 1,  // 사진 가로 세로 비율
+                      mainAxisSpacing: 10,     // 수평 padding
+                      crossAxisSpacing: 10),   // 수직 padding
+                  itemBuilder: (BuildContext context, int index) {
+                    // 사진 오른쪽 위 삭제 버튼을 표시하기 위해 stack 사용
+                    return Stack(
+                      alignment: Alignment.topRight,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(5),
+                              image: DecorationImage(
+                                  fit: BoxFit.cover,              // 사진 크기를 상자 크기에 맞게 조절
+                                  image: FileImage(File(images[index]!.path)))),   // images 리스트 변수 안에 있는 사진들을 순서대로 표시함
+                        ),
+                        Container(
+                          // decoration: BoxDecoration(
+                          //     color: Colors.black,
+                          //     borderRadius: BorderRadius.circular(5)),
+                          // 삭제 버튼
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            constraints: BoxConstraints(),
+                            icon: const Icon(
+                              Icons.close,
+                              color: Colors.black,
+                              size: 25,
+                            ),
+                            onPressed: () {
+                              // 버튼을 누르면 해당 이미지 삭제
+                              setState(() {
+                                images.remove(images[index]);
+                              });
+                            },
+                          ),
+                        )
+                      ],
+                    );
+                  },
+                ),
+              )
+            ],
+          )),
     );
   }
 }
